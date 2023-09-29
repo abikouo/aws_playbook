@@ -1,0 +1,29 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+  backend "http" {
+    address = {{ http_be_server }}
+    skip_cert_verification = true
+    username = {{ http_be_username }}
+    password = {{ http_be_password }}
+  }
+}
+
+provider "aws" {
+  region = "us-east-1"
+}
+
+resource "aws_s3_bucket" "awx_tf_bucket" {
+  bucket = "awx-tf-bucket"
+  tags = {
+    Description = "created with cloud.terraform collection"
+  }
+}
+
+output "bucket_regional_domain" {
+  value = aws_s3_bucket.awx_tf_bucket.bucket_regional_domain_name
+}
