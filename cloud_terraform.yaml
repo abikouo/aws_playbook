@@ -1,0 +1,58 @@
+---
+- hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Fail when http_be_server address is not defined
+      ansible.builtin.fail:
+        msg: 'Terraform http backend server address should be defined as "http_be_server"'
+      when: http_be_server is undefined
+
+    - name: Fail when http_be_username is not defined
+      ansible.builtin.fail:
+        msg: 'Terraform http backend user name should be defined as "http_be_username"'
+      when: http_be_username is undefined
+
+    - name: Fail when http_be_password is not defined
+      ansible.builtin.fail:
+        msg: 'Terraform http backend user password should be defined as "http_be_password"'
+      when: http_be_password is undefined
+
+    - name: Create temporary directory for terraform project
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: .tf
+      register: tf_dir
+
+    - name: Run terraform project
+      block:
+        - name: Download terraform template
+          ansible.builtin.get_url:
+            url: "https://raw.githubusercontent.com/abikouo/aws_playbook/main/terraform/main.tf.j2"
+            dest: "{{ tf_dir.path }}/main.tf.j2"
+
+        - name: Create terraform project file 'main.tf'
+          ansible.builtin.template:
+            src: "{{ tf_dir.path }}/main.tf.j2"
+            dest: "{{ tf_dir.path }}/main.tf"
+
+        - name: Run apply terraform project
+          cloud.terraform.terraform:
+            project_path: "{{ tf_dir.path }}"
+            state: "{{ tf_state | default(omit) }}"
+            force_init: true
+
+        - name: Read terraform output
+          cloud.terraform.terraform_output:
+            project_path: "{{ tf_dir.path }}"
+          register: tf_output
+
+        - name: Display terraform output
+          ansible.builtin.debug:
+            var: tf_output
+
+      # always:
+      #   # - name: Delete temporary directory
+        #   ansible.builtin.file:
+        #     state: absent
+        #     path: "{{ tf_dir.path }}"
