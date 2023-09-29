@@ -8,8 +8,8 @@ terraform {
   backend "http" {
     address = "{{ http_be_server }}"
     skip_cert_verification = true
-    username = {{ http_be_username }}
-    password = {{ http_be_password }}
+    username = "{{ http_be_username }}"
+    password = "{{ http_be_password }}"
   }
 }
 
