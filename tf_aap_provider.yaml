@@ -163,12 +163,15 @@
             src: "{{ tmpdir.path }}/main.tf.j2"
             dest: "{{ tmpdir.path }}/main.tf"
 
+        - name: Set path for GO binaries
+          ansible.builtin.set_fact:
+            go_bin_path: "{{ terraformrc_path | expanduser | dirname }}/go/bin/"
+          when: go_bin_path is undefined
+
         - name: Create terraformrc file for dev provider
           ansible.builtin.template:
             src: "{{ tmpdir.path }}/terraformrc.j2"
             dest: "{{ terraformrc_path }}"
-          vars:
-            go_bin_path: "{{ terraformrc_path | expanduser | dirname }}/go/bin/"
 
         - name: Run terraform configuration
           cloud.terraform.terraform:
