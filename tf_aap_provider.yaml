@@ -1,0 +1,172 @@
+---
+- name: Create aws ec2 instance
+  hosts: all
+  gather_facts: false
+
+  vars:
+    resource_tags:
+      createdby: aubin
+      createdwith: ansible-playbook
+      scope: awx_testing
+    ec2_image_id: "ami-0b0d5929983b7d885"
+
+  tasks:
+    - name: Define resource_prefix
+      ansible.builtin.set_fact:
+        resource_prefix: "{{ resource_prefix | default('awx-test') }}"
+
+    - name: Create a VPC to work in
+      amazon.aws.ec2_vpc_net:
+        cidr_block: "10.1.0.0/24"
+        name: "vpc-{{ resource_prefix }}"
+        resource_tags: "{{ resource_tags }}"
+      register: vpc
+
+    - name: Create a public subnet
+      amazon.aws.ec2_vpc_subnet:
+        vpc_id: "{{ vpc.vpc.id }}"
+        cidr: "10.1.0.0/26"
+        resource_tags: "{{ resource_tags }}"
+      register: subnet
+
+    - name: Create a virtual machine
+      amazon.aws.ec2_instance:
+        name: "vm-{{ resource_prefix }}"
+        instance_type: "t2.micro"
+        image_id: "{{ ec2_image_id }}"
+        subnet_id: "{{ subnet.subnet.id }}"
+        wait: true
+        state: started
+      register: create_vm
+
+    - name: Set virtual machine variables
+      ansible.builtin.set_fact:
+        vm_instance_id: "{{ create_vm.instance_ids.0 }}"
+        vm_architecture: "{{ create_vm.instances.0.architecture }}"
+        vm_instance_type: "{{ create_vm.instances.0.instance_type }}"
+        vm_launch_time: "{{ create_vm.instances.0.launch_time }}"
+        vm_ip_address: "{{ create_vm.instances.0.private_ip_address }}"
+        vm_dns_name: "{{ create_vm.instances.0.private_dns_name }}"
+
+
+- name: Create terraform infrastructure
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    http_be_username: "ansible"
+    http_be_password: "test123!"
+
+  tasks:
+    - name: create temporary file for terraform configuration
+      ansible.builtin.tempfile:
+        state: directory
+      register: tmpdir
+
+    - name: Run terraform configuration
+      block:
+        - name: Download terraform configuration template
+          ansible.builtin.get_url:
+            url: https://raw.githubusercontent.com/abikouo/aws_playbook/main/terraform/templates/ansible_provider.tf.j2
+            dest: "{{ tmpdir.path }}/main.tf.j2"
+
+        - name: Create terraform configuration
+          ansible.builtin.template:
+            src: "{{ tmpdir.path }}/main.tf.j2"
+            dest: "{{ tmpdir.path }}/main.tf"
+          vars:
+            http_be_server: "{{ aws_state_url | default('https://localhost:8043/api/v2/state/1/') }}"
+
+        - name: Run terraform configuration
+          cloud.terraform.terraform:
+            state: present
+            project_path: "{{ tmpdir.path }}"
+            force_init: true
+            variables:
+              host_dns_name: "{{ vm_dns_name }}"
+              host_ip_address: "{{ vm_ip_address }}"
+              host_instance_type: "{{ vm_instance_type }}"
+              host_id: "{{ vm_instance_id }}"
+              host_architecture: "{{ vm_architecture }}"
+              host_launch_time: "{{ vm_launch_time }}"
+              host_default_user: "fedora"
+
+        - name: Read terraform output
+          cloud.terraform.terraform_output:
+            project_path: "{{ tmpdir.path }}"
+          register: tf_out
+
+        - name: Display terraform output
+          ansible.builtin.debug:
+            var: tf_out
+
+      always:
+        - name: Delete temporary file
+          ansible.builtin.file:
+            state: absent
+            path: "{{ tmpdir.path }}"
+
+- name: Run aap provider
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    aap_username: "ansible"
+    aap_password: "test123!"
+    terraformrc_path: "~/.terraformrc"
+
+  tasks:
+    - name: create temporary file for terraform configuration
+      ansible.builtin.tempfile:
+        state: directory
+      register: tmpdir
+
+    - name: Run terraform configuration
+      block:
+        - name: Download terraform configuration template
+          ansible.builtin.get_url:
+            url: "https://raw.githubusercontent.com/abikouo/aws_playbook/main/terraform/templates/{{ item.src }}"
+            dest: "{{ tmpdir.path }}/{{ item.dest }}"
+          with_items:
+            - src: "aap_provider.tf.j2"
+              dest: "main.tf.j2"
+            - src: "terraformrc.j2"
+              dest: "terraformrc.j2"
+
+        - name: Create terraform configuration
+          ansible.builtin.template:
+            src: "{{ tmpdir.path }}/main.tf.j2"
+            dest: "{{ tmpdir.path }}/main.tf"
+
+        - name: Create terraformrc file for dev provider
+          ansible.builtin.template:
+            src: "{{ tmpdir.path }}/terraformrc.j2"
+            dest: "{{ terraformrc_path }}"
+          vars:
+            go_bin_path: "{{ terraformrc_path | expanduser | dirname }}/go/bin/"
+
+        - name: Run terraform configuration
+          cloud.terraform.terraform:
+            state: present
+            project_path: "{{ tmpdir.path }}"
+            variables:
+              state_id: "{{ state_id | default('1') }}"
+
+        - name: Read terraform output
+          cloud.terraform.terraform_output:
+            project_path: "{{ tmpdir.path }}"
+          register: tf_out
+
+        - name: Display terraform output
+          ansible.builtin.debug:
+            var: tf_out
+
+      always:
+        - name: Delete temporary file
+          ansible.builtin.file:
+            state: absent
+            path: "{{ item }}"
+          ignore_errors: true
+          with_items:
+            - "{{ tmpdir.path }}"
+            - "{{ terraformrc_path }}"
