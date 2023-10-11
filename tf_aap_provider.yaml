@@ -1,4 +1,30 @@
 ---
+- name: Ensure required variables have been defined
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Ensure AAP url has been defined
+      ansible.builtin.fail:
+        msg: "AAP URL should be defined using 'aap_url'"
+      when: aap_url is not defined
+
+    - name: Ensure AAP username has been defined
+      ansible.builtin.fail:
+        msg: "AAP username should be defined using 'aap_username'"
+      when: aap_username is not defined
+
+    - name: Ensure AAP user password has been defined
+      ansible.builtin.fail:
+        msg: "AAP User password should be defined using 'aap_password'"
+      when: aap_password is not defined
+
+    - name: Ensure state id has been defined
+      ansible.builtin.fail:
+        msg: "State id should be defined using 'aap_state_id'"
+      when: aap_state_id is not defined
+
+
 - name: Create aws ec2 instance
   hosts: all
   gather_facts: false
@@ -56,10 +82,6 @@
   hosts: localhost
   gather_facts: false
 
-  vars:
-    http_be_username: "ansible"
-    http_be_password: "test123!"
-
   tasks:
     - name: create temporary file for terraform configuration
       ansible.builtin.tempfile:
@@ -78,7 +100,9 @@
             src: "{{ tmpdir.path }}/main.tf.j2"
             dest: "{{ tmpdir.path }}/main.tf"
           vars:
-            http_be_server: "{{ aws_state_url | default('https://localhost:8043/api/v2/state/1/') }}"
+            http_be_server: "{{ aap_url }}/api/v2/state/{{ aap_state_id }}/"
+            http_be_username: "{{ aap_username }}"
+            http_be_password: "{{ aap_password }}"
 
         - name: Run terraform configuration
           cloud.terraform.terraform:
@@ -114,8 +138,6 @@
   gather_facts: false
 
   vars:
-    aap_username: "ansible"
-    aap_password: "test123!"
     terraformrc_path: "~/.terraformrc"
 
   tasks:
@@ -153,7 +175,7 @@
             state: present
             project_path: "{{ tmpdir.path }}"
             variables:
-              state_id: "{{ state_id | default('1') }}"
+              state_id: "{{ aap_state_id | default('1') }}"
 
         - name: Read terraform output
           cloud.terraform.terraform_output:
