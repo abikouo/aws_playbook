@@ -1,0 +1,62 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+    ansible = {
+      source  = "ansible/ansible"
+    }
+  }
+  backend "http" {
+    address = "{{ http_be_server }}"
+    skip_cert_verification = true
+    username = "{{ http_be_username }}"
+    password = "{{ http_be_password }}"
+  }
+}
+
+variable "host_dns_name" {
+  type = string
+}
+
+variable "host_ip_address" {
+  type = string
+}
+
+variable "host_instance_type" {
+  type = string
+}
+
+variable "host_default_user" {
+  type = string
+}
+
+variable "host_id" {
+  type = string
+}
+
+variable "host_architecture" {
+  type = string
+}
+
+variable "host_launch_time" {
+  type = string
+}
+
+resource "ansible_host" "my_ec2" {
+  name   = var.host_dns_name
+  groups = ["fedora"]
+  variables = {
+    ansible_user  = var.host_default_user
+    ansible_host  = var.host_ip_address
+    instance_type = var.host_instance_type
+    instance_id   = var.host_id
+    architecture  = var.host_architecture
+    launch_time   = var.host_launch_time
+  }
+}
+
+output "inventory_host" {
+  value = ansible_host.my_ec2.variables
+}
