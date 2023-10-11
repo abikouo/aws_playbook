@@ -20,6 +20,7 @@
         cidr_block: "10.1.0.0/24"
         name: "vpc-{{ resource_prefix }}"
         resource_tags: "{{ resource_tags }}"
+        region: "{{ aws_region | default('eu-west-2') }}"
       register: vpc
 
     - name: Create a public subnet
@@ -27,6 +28,7 @@
         vpc_id: "{{ vpc.vpc.id }}"
         cidr: "10.1.0.0/26"
         resource_tags: "{{ resource_tags }}"
+        region: "{{ aws_region | default('eu-west-2') }}"
       register: subnet
 
     - name: Create a virtual machine
@@ -37,6 +39,7 @@
         subnet_id: "{{ subnet.subnet.id }}"
         wait: true
         state: started
+        region: "{{ aws_region | default('eu-west-2') }}"
       register: create_vm
 
     - name: Set virtual machine variables
