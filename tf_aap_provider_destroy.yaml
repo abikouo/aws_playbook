@@ -1,0 +1,55 @@
+- name: Teardown infrastructure
+  hosts: all
+  gather_facts: false
+
+  vars:
+    resource_tags:
+      createdby: aubin
+      createdwith: ansible-playbook
+      scope: awx_testing
+    ec2_image_id: "ami-0b0d5929983b7d885"
+
+  tasks:
+    - name: Define resource_prefix
+      ansible.builtin.set_fact:
+        resource_prefix: "{{ resource_prefix | default('awx-test') }}"
+    
+    - name: Get vpc information
+      amazon.aws.ec2_vpc_net_info:
+        filters:
+          tag:Name: "vpc-{{ resource_prefix }}"
+      register: vpc
+
+    - name: Delete resources from VPC
+      block:
+        - ansible.builtin.set_fact:
+            vpc_id: "{{ vpc.vpcs.0.vpc_id }}"
+
+        - name: List running hosts from virtual private cloud
+          amazon.aws.ec2_instance_info:
+            filters:
+              vpc-id: "{{ vpc_id }}"
+          register: hosts
+
+        - name: Delete instances
+          amazon.aws.ec2_instance:
+            instance_ids: "{{ hosts_ids }}"
+            wait: true
+            state: terminated
+          when: hosts_ids | length > 0
+          vars:
+            hosts_ids: "{{ hosts.instances | map(attribute='instance_id') | list }}"
+
+        - name: Delete Subnet
+          amazon.aws.ec2_vpc_subnet:
+            cidr: "10.1.0.0/26"
+            state: absent
+            vpc_id: "{{ vpc_id }}"
+
+        - name: Delete VPC
+          amazon.aws.ec2_vpc_net:
+            name: "vpc-{{ resource_prefix }}"
+            cidr_block: "10.1.0.0/24"
+            state: absent
+
+      when: vpc.vpcs | length == 1
