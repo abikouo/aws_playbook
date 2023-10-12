@@ -7,6 +7,7 @@
     - name: Validate that required variables where provided
       ansible.builtin.fail:
         msg: 'TF main.tf must be provided as "tf_config_url"'
+      when: tf_config_url is undefined
 
     - name: create temporary file for terraform configuration
       ansible.builtin.tempfile:
