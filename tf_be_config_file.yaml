@@ -5,7 +5,7 @@
 
   tasks:
     - name: Read terraform backend configuration path
-      ansible.bultin.set_fact:
+      ansible.builtin.set_fact:
         tf_config_path: "{{ lookup('env', 'TF_BACKEND_CONFIG_FILE') }}"
 
     - name: Stat file
