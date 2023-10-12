@@ -18,3 +18,7 @@
         that:
           - tf_config_path != ""
           - _stat.stat.exists
+
+    - name: Get file content
+      ansible.builtin.set_fact:
+        tf_be_config: "{{ lookup('file', tf_config_path) }}"
