@@ -34,7 +34,7 @@
           ansible.builtin.get_url:
             url: "{{ tf_config_url }}"
             dest: "{{ tmpdir.path }}/main.tf"
-          when: tf_config_url is not match(".*\.j2$"))
+          when: tf_config_url is not match(".*\.j2$")
 
         - name: Reading TF BE config secret
           ansible.builtin.set_fact:
