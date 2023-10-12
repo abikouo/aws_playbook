@@ -1,0 +1,63 @@
+---
+- name: Terraform Generic playbook
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Validate that required variables where provided
+      ansible.builtin.fail:
+        msg: 'TF main.tf must be provided as "tf_config_url"'
+
+    - name: create temporary file for terraform configuration
+      ansible.builtin.tempfile:
+        state: directory
+      register: tmpdir
+
+    - name: Run terraform configuration
+      block:
+        - name: Download and generate configuration from template
+          block:
+            - name: Download terraform configuration template
+              ansible.builtin.get_url:
+                url: "{{ tf_config_url }}"
+                dest: "{{ tmpdir.path }}/main.tf.j2"
+
+            - name: Generate configuration from template
+              ansible.builtin.template:
+                src: "{{ tmpdir.path }}/main.tf.j2"
+                dest: "{{ tmpdir.path }}/main.tf"
+
+          when: tf_config_url is match(".*\.j2$")
+
+        - name: Download terraform configuration template
+          ansible.builtin.get_url:
+            url: "{{ tf_config_url }}"
+            dest: "{{ tmpdir.path }}/main.tf"
+          when: tf_config_url is not match(".*\.j2$"))
+
+        - name: Reading TF BE config secret
+          ansible.builtin.set_fact:
+            tf_backend_config_file: "{{ lookup('env', 'TF_BACKEND_CONFIG_FILE') }}"
+
+        - name: create simple terraform project
+          cloud.terraform.terraform:
+            force_init: true
+            state: present
+            project_path: '{{ tmpdir.path }}'
+            backend_config_files: "{{ tf_backend_config_file }}"
+            variables: "{{ tf_variables | default(omit) }}"
+          when: tf_backend_config_file != ""
+
+        - name: create simple terraform project
+          cloud.terraform.terraform:
+            force_init: true
+            state: present
+            project_path: '{{ tmpdir.path }}'
+            variables: "{{ tf_variables | default(omit) }}"
+          when: tf_backend_config_file == ""
+
+      always:
+        - name: Delete temporary file
+          ansible.builtin.file:
+            state: absent
+            path: "{{ tmpdir.path }}"
