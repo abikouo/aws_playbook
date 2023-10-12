@@ -1,0 +1,20 @@
+---
+- name: Ensure TF_BACKEND_CONFIG_FILE is populated by AAP in the EE
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Read terraform backend configuration path
+      ansible.bultin.set_fact:
+        tf_config_path: "{{ lookup('env', 'TF_BACKEND_CONFIG_FILE') }}"
+
+    - name: Stat file
+      ansible.builtin.stat:
+        path: "{{ tf_config_path }}"
+      register: _stat
+
+    - name: Ensure TF_BACKEND_CONFIG_FILE is not an empty string and the path exists
+      ansible.builtin.assert:
+        that:
+          - tf_config_path != ""
+          - _stat.stat.exists
