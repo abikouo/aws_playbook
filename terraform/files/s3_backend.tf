@@ -7,6 +7,11 @@ terraform {
   }
 }
 
+variable "region" {
+  type = string
+  description = "The AWS region where the resources will be created"
+}
+
 provider "aws" {
   region = var.region
 }
