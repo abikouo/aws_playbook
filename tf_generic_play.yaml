@@ -57,6 +57,15 @@
             variables: "{{ tf_variables | default(omit) }}"
           when: tf_backend_config_file == ""
 
+        - name: Read terraform output
+          cloud.terraform.terraform_output:
+            project_path: "{{ tmpdir.path }}"
+          register: tf_out
+
+        - name: Display terraform output
+          ansible.builtin.debug:
+            var: tf_out
+
       always:
         - name: Delete temporary file
           ansible.builtin.file:
