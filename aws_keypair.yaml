@@ -1,0 +1,9 @@
+- hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Create single ec2 key pair
+      amazon.aws.ec2_key:
+        state: "{{ key_state | default(omit) }}"
+        key_type: ed25519
+        name: "{{ key_name }}"
