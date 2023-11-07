@@ -2,6 +2,13 @@
   gather_facts: false
 
   tasks:
+    - ansible.builtin.set_fact:
+        wait_time: "{{ wait_time | default(120) | int }}"
+
+    - name: 'Wait {{ wait_time }} second(s)'
+      ansible.builtin.pause:
+        seconds: "{{ wait_time }}"
+
     - name: Create single ec2 key pair
       amazon.aws.ec2_key:
         region: "{{ aws_region | default('us-east-1') }}"
