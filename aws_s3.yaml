@@ -1,0 +1,9 @@
+- hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Create/delete S3 bucket
+      amazon.aws.s3_bucket:
+        state: "{{ bucket_state | default(omit) }}"
+        name: "{{ bucket_name }}"
+      when: bucket_name is defined
