@@ -1,0 +1,8 @@
+- hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Display host
+      debug:
+        var: bucket_name
+      when: bucket_name is defined
