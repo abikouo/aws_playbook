@@ -1,0 +1,8 @@
+- hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Add encoded plan contents to stats
+      ansible.builtin.set_stats:
+        data:
+          tfplan: "Some content to be shared as stats  {{ resource_prefix }}"

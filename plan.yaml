@@ -1,0 +1,6 @@
+- hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Display the sample content saved into stats
+      debug: var=tfplan
