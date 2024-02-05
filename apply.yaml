@@ -14,7 +14,7 @@
       block:
         - name: Decode terraform plan file
           copy:
-            url: "{{ terraform_plan_file }}"
+            dest: "{{ terraform_plan_file }}"
             content: "{{ terraform_plan | b64decode }}"
 
         - name: Run terraform plan
