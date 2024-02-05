@@ -33,7 +33,7 @@
         - name: Stash the terraform plan file
           cloud.terraform.plan_stash:
             path: "{{ terraform_plan_file }}"
-            per_host: true
+            per_host: false
 
       always:
         - name: Delete temporary directory
