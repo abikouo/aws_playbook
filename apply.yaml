@@ -17,6 +17,11 @@
             dest: "{{ terraform_plan_file }}"
             content: "{{ terraform_plan | b64decode }}"
 
+        - name: Download terraform configuration
+          uri:
+            dest: "{{ tfdir.path }}/main.tf"
+            url: "{{ terraform_config_url }}"
+
         - name: Run terraform plan
           cloud.terraform.terraform:
             project_path: "{{ tfdir.path }}"

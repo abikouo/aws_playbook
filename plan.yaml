@@ -2,11 +2,6 @@
   gather_facts: false
 
   tasks:
-    - name: Ensure the terraform configuration has been defined
-      ansible.builtin.fail:
-        msg: 'Missing required terraform configuration file'
-      when: terraform_config_url is undefined
-
     - name: Create temporary directory to run terraform configuration
       ansible.builtin.tempfile:
         suffix: '.tf'
