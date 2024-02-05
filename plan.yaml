@@ -2,5 +2,41 @@
   gather_facts: false
 
   tasks:
-    - name: Display the sample content saved into stats
-      debug: var=tfplan
+    - name: Ensure the terraform configuration has been defined
+      ansible.builtin.fail:
+        msg: 'Missing required terraform configuration file'
+      when: terraform_config_url is undefined
+
+    - name: Create temporary directory to run terraform configuration
+      ansible.builtin.tempfile:
+        suffix: '.tf'
+        state: directory
+      register: tfdir
+
+    - name: Run terraform configuration
+      vars:
+        terraform_plan_file: "{{ tfdir.path }}/terraform.tfplan"
+      block:
+        - name: Download terraform configuration
+          uri:
+            dest: "{{ tfdir.path }}/main.tf"
+            url: "{{ terraform_config_url }}"
+
+        - name: Run terraform plan
+          cloud.terraform.terraform:
+            project_path: "{{ tfdir.path }}"
+            force_init: true
+            state: "{{ terraform_state | default('present') }}"
+            plan_file: "{{ terraform_plan_file }}"
+          check_mode: true
+
+        - name: Stash the terraform plan file
+          cloud.terraform.plan_stash:
+            path: "{{ terraform_plan_file }}"
+            per_host: true
+
+      always:
+        - name: Delete temporary directory
+          ansible.builtin.file:
+            state: absent
+            path: "{{ tfdir.path }}"

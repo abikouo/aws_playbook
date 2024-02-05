@@ -2,7 +2,30 @@
   gather_facts: false
 
   tasks:
-    - name: Add encoded plan contents to stats
-      ansible.builtin.set_stats:
-        data:
-          tfplan: "Some content to be shared as stats  {{ resource_prefix }}"
+    - name: Create temporary directory to run terraform configuration
+      ansible.builtin.tempfile:
+        suffix: '.tf'
+        state: directory
+      register: tfdir
+
+    - name: Run terraform configuration
+      vars:
+        terraform_plan_file: "{{ tfdir.path }}/terraform.tfplan"
+      block:
+        - name: Decode terraform plan file
+          copy:
+            url: "{{ terraform_plan_file }}"
+            content: "{{ terraform_plan | b64decode }}"
+
+        - name: Run terraform plan
+          cloud.terraform.terraform:
+            project_path: "{{ tfdir.path }}"
+            force_init: true
+            state: "{{ terraform_state | default('present') }}"
+            plan_file: "{{ terraform_plan_file }}"
+
+      always:
+        - name: Delete temporary directory
+          ansible.builtin.file:
+            state: absent
+            path: "{{ tfdir.path }}"
