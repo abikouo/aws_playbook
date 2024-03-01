@@ -1,0 +1,9 @@
+- hosts: all
+  gather_facts: false
+
+  roles:
+    - role: cloud.terraform_ops.azurerm_backend
+      azurerm_backend_operation: "{{ operation | default('create') }}"
+      azurerm_backend_resource_group_name: "{{ resource_group }}"
+      azurerm_backend_location: eastus
+      azurerm_backend_container_name: terraform
