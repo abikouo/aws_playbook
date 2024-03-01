@@ -6,10 +6,6 @@
       aws_s3backend_operation: "{{ operation | default('create') }}"
       aws_s3backend_bucket_name: "{{ bucket_name }}"
       aws_s3backend_dynamodb_table_name: "{{ db_table_name }}"
-      aws_s3backend_iam_type: "{{ iam_type | default(omit) }}"
-      aws_s3backend_iam_name: "{{ iam_name | default(omit) }}"
-      aws_s3backend_terraform_state_path: "{{ terraform_state_path }}"
-      aws_s3backend_delete_iam_resource: "{{ delete_iam_resource | default('false') }}"
 
     - role: cloud.terraform_ops.gcs_backend
       gcs_backend_operation: "{{ operation | default('create') }}"
@@ -20,4 +16,3 @@
       azurerm_backend_resource_group_name: "{{ resource_group }}"
       azurerm_backend_location: "{{ resource_group_location }}"
       azurerm_backend_container_name: "terraform_state"
-      azurerm_backend_service_principal_id: "{{ service_principal_id | default(omit) }}"
