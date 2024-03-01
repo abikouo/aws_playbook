@@ -1,6 +1,11 @@
 - hosts: all
   gather_facts: false
 
+  pre_tasks:
+    - name: Ensure azure credentials are valid
+      azure.azcollection.azure_rm_resourcegroup_info:
+        name: "{{ resource_group }}"
+
   roles:
     - role: cloud.terraform_ops.azurerm_backend
       azurerm_backend_operation: "{{ operation | default('create') }}"
