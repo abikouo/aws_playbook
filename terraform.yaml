@@ -1,0 +1,32 @@
+- hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Fail when 'tf_config' is undefined
+      fail:
+        msg: "Terraform configuration should be defined using 'tf_config'"
+      when: tf_config is undefined
+
+    - name: Create temporary directory
+      tempfile:
+        state: directory
+        suffix: .tf
+      register: tf
+
+    - block:
+        - name: Copy terraform configuration into path
+          copy:
+            content: "{{ tf_config }}"
+            dest: "{{ tf.path }}/main.tf"
+
+        - name: Terraform configuration
+          cloud.terraform.terraform:
+            state: "{{ resource_state | default('present') }}"
+            project_path: "{{ tf.path }}"
+            force_init: true
+
+      always:
+        - name: Delete temporary directory
+          file:
+            state: absent
+            path: "{{ tf.path }}"
