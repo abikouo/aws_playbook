@@ -24,6 +24,8 @@
             state: "{{ resource_state | default('present') }}"
             project_path: "{{ tf.path }}"
             force_init: true
+            backend_config_files:
+              - "{{ lookup('env', 'TF_BACKEND_CONFIG_FILE') }}"
 
       always:
         - name: Delete temporary directory
