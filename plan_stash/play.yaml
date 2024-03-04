@@ -39,7 +39,7 @@
                 state: stash
 
         - name: Apply/Destroy the Terraform configuration
-          when: tf_plan | default('false') | bool
+          when: not (tf_plan | default('false') | bool)
           block:
             - name: Load the Terraform plan file
               cloud.terraform.plan_stash:
