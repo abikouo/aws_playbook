@@ -1,0 +1,61 @@
+- hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Ensure Terraform configuration is defined
+      assert:
+        that:
+          - tf_config is defined
+
+    - name: Create temporary directory to run terraform configuration
+      ansible.builtin.tempfile:
+        suffix: '.tf'
+        state: directory
+      register: tfdir
+
+    - name: Run terraform configuration
+      vars:
+        terraform_plan_file: "{{ tfdir.path }}/terraform.tfplan"
+      block:
+        - name: Copy Terraform configuration
+          copy:
+            dest: "{{ tfdir.path }}/main.tf"
+            content: "{{ tf_config }}"
+
+        - name: Terraform plan configuration
+          when: tf_plan | default('false') | bool
+          block:
+            - name: Run Terraform plan
+              cloud.terraform.terraform:
+                project_path: "{{ tfdir.path }}"
+                force_init: true
+                plan_file: "{{ terraform_plan_file }}"
+              check_mode: true
+
+            - name: Stash the Terraform plan file
+              cloud.terraform.plan_stash:
+                path: "{{ terraform_plan_file }}"
+                per_host: false
+                state: stash
+
+        - name: Apply/Destroy the Terraform configuration
+          when: tf_plan | default('false') | bool
+          block:
+            - name: Load the Terraform plan file
+              cloud.terraform.plan_stash:
+                path: "{{ terraform_plan_file }}"
+                per_host: false
+                state: load
+
+            - name: Apply/Destroy the Terraform configuration
+              cloud.terraform.terraform:
+                project_path: "{{ tfdir.path }}"
+                force_init: true
+                plan_file: "{{ terraform_plan_file }}"
+                state: "{{ tf_state | default('present') }}"
+
+      always:
+        - name: Delete temporary directory
+          ansible.builtin.file:
+            state: absent
+            path: "{{ tfdir.path }}"
