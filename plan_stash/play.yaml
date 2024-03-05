@@ -30,6 +30,7 @@
                 project_path: "{{ tfdir.path }}"
                 force_init: true
                 plan_file: "{{ terraform_plan_file }}"
+                state: "{{ tf_state | default('present') }}"
               check_mode: true
 
             - name: Stash the Terraform plan file
