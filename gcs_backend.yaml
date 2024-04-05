@@ -1,0 +1,7 @@
+- hosts: all
+  gather_facts: false
+
+  roles:
+    - role: cloud.terraform_ops.gcs_backend
+      gcs_backend_operation: "{{ operation | default('create') }}"
+      gcs_backend_bucket_name: "{{ bucket_name }}"
