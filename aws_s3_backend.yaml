@@ -1,6 +1,9 @@
 - hosts: all
   gather_facts: false
 
+  environment:
+    AWS_REGION: us-east-1
+
   roles:
     - role: cloud.terraform_ops.aws_s3backend
       aws_s3backend_operation: "{{ operation | default('create') }}"
